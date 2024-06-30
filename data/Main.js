@@ -140,7 +140,7 @@ async function main(){
         }
 
         for (const candidate of candidates){
-            const searchName = cleanString(candidate.title.toLowerCase(), config.searchTermBlacklist);
+            const searchName = cleanString(candidate.title, config.searchTermBlacklist);
             const filename = await downloadMod({ displayName: candidate.title, modId: candidate.slug, searchName: searchName }, answers.modLoader, answers.version, true);
 
             if (!!filename){
@@ -223,7 +223,7 @@ async function readModsTomlFromJar(jarFilePath) {
         const parsedToml = toml.parse(modsTomlContent);
         
         const displayName = parsedToml.mods?.[0]?.displayName || 'Unknown';
-        const searchName = cleanString(parsedToml.mods?.[0]?.displayName.toLowerCase(), config.searchTermBlacklist) || 'Unknown';
+        const searchName = cleanString(parsedToml.mods?.[0]?.displayName, config.searchTermBlacklist) || 'Unknown';
         const modId = parsedToml.mods?.[0]?.modId || 'Unknown';
         
         return { displayName, modId, searchName };

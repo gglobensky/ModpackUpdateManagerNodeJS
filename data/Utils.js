@@ -8,13 +8,19 @@ const __dirname = getDirName();
 
 /*
 Removes predefined terms from mod names to broaden search results
+Also splits pascal case into words
 */
-export function cleanString(str, blacklist){
-    for (const term of blacklist){
-        str = str.replaceAll(term.toLowerCase(), '');
-    }
+export function cleanString(str, blacklist) {
+  // Split PascalCase into words
+  str = str.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z])([A-Z][a-z])/g, '$1 $2');
 
-    return str.trim();
+  str = str.toLowerCase();
+  // Remove blacklist terms
+  for (const term of blacklist) {
+      str = str.replaceAll(term.toLowerCase(), '');
+  }
+
+  return str.trim();
 }
 
 export function simplifyString(input) {
