@@ -38,4 +38,4 @@ Output all of the text from the prompt to a log file
 
 
 I also have a Curseforge compatible version here, but it is very different due to technical limitations:
-https://github.com/gglobensky/ModpackUpdateManagerNodeJS
+https://github.com/gglobensky/ModpackUpdateManager
