@@ -1,13 +1,7 @@
 import fs from 'fs-extra'
 import path from 'path'
 import { fileURLToPath } from 'url';
-
-const logLevel = {
-    DEBUG: 0,
-    INFO: 1,
-    WARNING: 2,
-    ERROR: 3
-}
+import { getCurrentDateTimeWithMilliseconds } from './Utils.js'
 
 const modrinthApiURL = 'https://api.modrinth.com/v2';
 const GETOptions = {
@@ -23,7 +17,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const outputFolder = path.join(path.resolve(__dirname, '..'), 'output');
 const reportLogFn = 'report.log';
+const outputLogFn = `output_${getCurrentDateTimeWithMilliseconds(true)}.log`;
 const reportLogFilePath = path.join(path.resolve(__dirname, '..'), reportLogFn);
+const outputLogFilePath = path.join(path.resolve(__dirname, '..'), outputLogFn);
 const modsFolder = 'mods';
 const alternateFolder = 'alternateVersions';
 const configFn = 'ModpackUpdateManagerNodeJS-config.json';
@@ -66,7 +62,8 @@ const defaultConfig = {
         'unofficial'
     ],
     chooseVersionFromList: false,
-    specifyPathWithDialog: true
+    specifyPathWithDialog: true,
+    logOutputToFile: false
 }
 
 const reportObj = {
@@ -90,6 +87,11 @@ if (!fs.existsSync(path.join(outputFolder, modsFolder, alternateFolder))){
 const config = initConfig(path.join(path.resolve(__dirname, '..'), configFn), defaultConfig);
 
 fs.writeFileSync(reportLogFilePath, '');
+
+if (config.logOutputToFile){
+    console.log(outputLogFilePath);
+    fs.writeFileSync(outputLogFilePath, '');
+}
 
 if (!config){
     logMessage(`Could not parse config JSON. Correct ${configFn} or delete it to reset.`, logLevel.ERROR);
@@ -124,6 +126,9 @@ export function getOutputFolder(){
 export function getReportLogFilePath(){
     return reportLogFilePath;
 }
+export function getOutputLogFilePath(){
+    return outputLogFilePath;
+}
 export function getModsFolder(){
     return modsFolder;
 }
@@ -135,9 +140,6 @@ export function getReportObj(){
 }
 export function getConfig(){
     return config;
-}
-export function getLogLevel(){
-    return logLevel;
 }
 export function getDirName(){
     return __dirname;
@@ -152,6 +154,5 @@ export default {
     getAlternateFolder,
     getReportObj,
     getConfig,
-    getLogLevel,
     getDirName
 };

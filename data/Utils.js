@@ -11,10 +11,10 @@ Removes predefined terms from mod names to broaden search results
 */
 export function cleanString(str, blacklist){
     for (const term of blacklist){
-        str = str.replaceAll(term, '');
+        str = str.replaceAll(term.toLowerCase(), '');
     }
 
-    return str;
+    return str.trim();
 }
 
 export function simplifyString(input) {
@@ -28,23 +28,31 @@ export function simplifyString(input) {
 }
 
 export function filterObjectsBySearchString(searchString, objects, fieldName) {
-    // Split the search string into words and convert to lower case
-    const searchWords = searchString.toLowerCase().split(/\s+/);
-  
-    // Function to check if the specified field of an object contains all search words
-    function objectContainsAllWords(obj) {
-      // Get the field value, convert to lower case
-      const fieldValue = obj[fieldName]?.toLowerCase() || '';
-  
-      // Check if all words in searchWords are present in fieldValue
-      return searchWords.every(word => fieldValue.includes(word));
-    }
-  
-    // Filter the array of objects
-    return objects.filter(objectContainsAllWords);
+  // Split the search string into words and convert to lower case
+  const searchWords = searchString.toLowerCase().split(/\s+/);
+
+  // Function to check if the specified field of an object contains all search words
+  function objectContainsAllWords(obj) {
+    // Get the field value, convert to lower case
+    const fieldValue = obj[fieldName]?.toLowerCase() || '';
+
+    // Check if all words in searchWords are present in fieldValue
+    return searchWords.every(word => fieldValue.includes(word));
+  }
+
+  // Filter the array of objects
+  const filteredObjects = objects.filter(objectContainsAllWords);
+
+  // Sort the filtered objects by the number of words in the field value
+  return filteredObjects.sort((a, b) => {
+      const aWordCount = (a[fieldName]?.match(/\b\w+\b/g) || []).length;
+      const bWordCount = (b[fieldName]?.match(/\b\w+\b/g) || []).length;
+      return aWordCount - bWordCount;
+  });
 }
 
-export function getCurrentDateTimeWithMilliseconds() {
+
+export function getCurrentDateTimeWithMilliseconds(isFilenameComponent) {
     const now = new Date();
   
     const year = now.getFullYear();
@@ -55,7 +63,16 @@ export function getCurrentDateTimeWithMilliseconds() {
     const seconds = String(now.getSeconds()).padStart(2, '0');
     const milliseconds = String(now.getMilliseconds()).padStart(3, '0');
   
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+    let str;
+
+    if (isFilenameComponent){
+      str = `${year}-${month}-${day}_${hours}.${minutes}.${seconds}.${milliseconds}`;
+    }
+    else{
+      str = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+    }
+
+    return str;
   }
   
 // Path to the PowerShell script
