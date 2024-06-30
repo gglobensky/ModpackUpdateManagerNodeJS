@@ -1,8 +1,11 @@
 import { exec  } from 'child_process';
 import path from 'path'
 import { 
-    getDirName
+    getDirName/*, getOutputLogFilePath*/
 } from './Init.js'
+/*import { logMessage, logError, logToFile, getLogLevel } from './Logger.js'
+const outputLogFilePath = getOutputLogFilePath();
+const logLevel = getLogLevel();*/
 
 const __dirname = getDirName();
 
@@ -25,7 +28,7 @@ export function cleanString(str, blacklist) {
 
 export function simplifyString(input) {
     // Step 1: Remove special characters except for letters, digits, and whitespace
-    let cleaned = input.replace(/[^a-zA-Z0-9\s]/g, '');
+    let cleaned = input.replace(/[^a-zA-Z0-9\s]/g, ' ');
 
     // Step 2: Remove digits that are not part of words
     cleaned = cleaned.replace(/\b\d+\b/g, '');
@@ -34,13 +37,18 @@ export function simplifyString(input) {
 }
 
 export function filterObjectsBySearchString(searchString, objects, fieldName) {
-  // Split the search string into words and convert to lower case
-  const searchWords = searchString.toLowerCase().split(/\s+/);
+  // Function to clean strings by removing special characters
+  function removeSpecialChars(str) {
+    return str.replace(/[^a-zA-Z0-9\s]/g, '').toLowerCase();
+  }
+
+  // Split the cleaned search string into words
+  const searchWords = removeSpecialChars(searchString).split(/\s+/);
 
   // Function to check if the specified field of an object contains all search words
   function objectContainsAllWords(obj) {
-    // Get the field value, convert to lower case
-    const fieldValue = obj[fieldName]?.toLowerCase() || '';
+    // Get the cleaned field value
+    const fieldValue = removeSpecialChars(obj[fieldName] || '');
 
     // Check if all words in searchWords are present in fieldValue
     return searchWords.every(word => fieldValue.includes(word));
@@ -51,12 +59,11 @@ export function filterObjectsBySearchString(searchString, objects, fieldName) {
 
   // Sort the filtered objects by the number of words in the field value
   return filteredObjects.sort((a, b) => {
-      const aWordCount = (a[fieldName]?.match(/\b\w+\b/g) || []).length;
-      const bWordCount = (b[fieldName]?.match(/\b\w+\b/g) || []).length;
-      return aWordCount - bWordCount;
+    const aWordCount = (removeSpecialChars(a[fieldName] || '').match(/\b\w+\b/g) || []).length;
+    const bWordCount = (removeSpecialChars(b[fieldName] || '').match(/\b\w+\b/g) || []).length;
+    return aWordCount - bWordCount;
   });
 }
-
 
 export function getCurrentDateTimeWithMilliseconds(isFilenameComponent) {
     const now = new Date();
