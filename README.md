@@ -17,9 +17,20 @@ You can configure the script using the ModpackUpdateManagerNodeJS-config.json fi
 
 In it, you can set:
 
-versions: 				All of the Minecraft versions you want to allow the script to search for
-modLoaders: 			All of the Minecraft mod loaders you want to allow the script to search for
-searchTermBlacklist: 	All of the words that will be removed from the mod names (like edition or port or unofficial)
-chooseVersionFromList: 	Whether you choose the Minecraft version to update to from a list or write it manually
-specifyPathWithDialog: 	Whether you paste the mod file path manually or use a Windows dialog to select it
-logOutputToFile:		Output all of the text from the prompt to a log file
+**versions**: 				
+All of the Minecraft versions you want to allow the script to search for
+
+**modLoaders**: 			
+All of the Minecraft mod loaders you want to allow the script to search for
+
+**searchTermBlacklist**: 	
+All of the words that will be removed from the mod names (like edition or port or unofficial)
+
+**chooseVersionFromList**: 	
+Whether you choose the Minecraft version to update to from a list or write it manually
+
+**specifyPathWithDialog**: 	
+Whether you paste the mod file path manually or use a Windows dialog to select it
+
+**logOutputToFile**:		
+Output all of the text from the prompt to a log file
