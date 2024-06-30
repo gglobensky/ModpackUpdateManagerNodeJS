@@ -1,20 +1,5 @@
 /*TODO -> 
-ask for mods file path - 
-ask for version to update to -
-scan all mods jar files and get 
-    mod name
-    create searchable mod name (remove weird chars and all)
-    put in list of objects
-Search for mods from list of objects
-    if name is found 
-        download mod
-        validate mod jar metadata name matches with name from the original one (regular name we saved)
-        if name doesnt match
-            create if not exist a folder named mismatch
-            move mod into it
-
-when list is gone through:
-    Message user and tell about mismatch folder and other details
+Sort mod search result by the number of words. The less words first to have a better match
 */
 
 
@@ -23,7 +8,7 @@ import fs from 'fs-extra'
 import path from 'path'
 import AdmZip from 'adm-zip';
 import toml from 'toml';
-import { cleanString, simplifyString, filterObjectsBySearchString } from './Utils.js'
+import { cleanString, simplifyString, filterObjectsBySearchString, selectFolder } from './Utils.js'
 import { logMessage, logError, logToFile } from './Logger.js'
 import { fetchData, downloadFile } from './WebClient.js'
 import { 
@@ -36,7 +21,8 @@ import {
     getReportObj,
     getConfig,
     getSearchTermBlacklist,
-    getLogLevel
+    getLogLevel,
+    getDirName
 } from './Init.js'
 
 const modrinthApiURL = getModrinthApi();
@@ -50,35 +36,65 @@ const config = getConfig();
 const searchTermBlacklist = getSearchTermBlacklist();
 const logLevel = getLogLevel();
 
+let versionQuestion = {
+    type: 'input',
+    name: 'version',
+    message: 'Please input the Minecraft version to update to.',
+    validate: (value) => {
+        const isValid = config.versions.includes(value);
+        return isValid ? isValid : `Please enter a version from the following: ${JSON.stringify(config.versions, null, 2)}`;
+    }
+};
+
+if (config.chooseVersionFromList){
+    versionQuestion = {
+        type: 'list',
+        name: 'version',
+        message: 'Please choose the Minecraft version to update to.',
+        choices: config.versions
+    };
+}
+
 const questions = [
-    {
-      type: 'input',
-      name: 'modFolder',
-      message: 'Please enter the path of your mod folder.',
-      validate: (value) => {
-          const isValid = fs.existsSync(value);
-          return isValid ? isValid : 'Please enter a valid path';
-      }
-    },
     {
         type: 'list',
         name: 'modLoader',
         message: 'Please choose the Minecraft modLoader to update to.',
         choices: config.modLoaders
     },
-    {
-        type: 'list',
-        name: 'version',
-        message: 'Please choose the Minecraft version to update to.',
-        choices: config.versions
-    }
+    versionQuestion
 ];
+
+if (!config.specifyPathWithDialog){
+    questions.unshift({
+        type: 'input',
+        name: 'modFolder',
+        message: 'Please enter the path of your mod folder.',
+        validate: (value) => {
+            const isValid = fs.existsSync(value);
+            return isValid ? isValid : 'Please enter a valid path';
+        }
+      });
+}
 
 main();
 
 async function main(){
+    let modFolderFromDialog = '';
+
+    if (config.specifyPathWithDialog){    
+        logMessage('Please select your source mod folder.');
+        modFolderFromDialog = await selectFolder();
+
+        if (modFolderFromDialog === 'Dialog canceled') {
+            logError('User canceled the dialog.', '');
+            process.exit(0);
+        }
+    }
+
     const answers = await inquirer.prompt(questions);
-    const modData = await processJarFiles(answers.modFolder);
+
+    const modData = await processJarFiles(config.specifyPathWithDialog? modFolderFromDialog : answers.modFolder);
     
     const modsToFindAlternates = [];
 
@@ -86,16 +102,16 @@ async function main(){
 
     // Iterate through every mod in the source folder
     for (const datum of modData){
-        const success = await downloadMod(datum, answers.modLoader, answers.version);
+        const filename = await downloadMod(datum, answers.modLoader, answers.version);
 
-        if (!success){
+        if (filename === null){
             modsToFindAlternates.push(datum);
         }
         else{
-            reportObj.found.push(`${datum.displayName} - Found and downloaded successfully.`);
+            reportObj.found.push(`${datum.displayName} - Found and downloaded successfully with filename ${filename}.`);
         }
 
-        await delay(2000)
+        await delay(500);
     }
     
     for (const modToSearch of modsToFindAlternates){
@@ -117,24 +133,28 @@ async function main(){
         
         if (candidates.length === 0){
             logMessage(`Could not find suitable alternative for ${modToSearch.displayName} with search term ${modToSearch.searchName}. Skipping...`);
-            reportObj.missing.push(`${modToSearch.displayName} -  with search term ${modToSearch.searchName}. Skipped.`);
+            reportObj.missing.push(`${modToSearch.displayName} - Could not find suitable alternative with search term ${modToSearch.searchName}. Skipped.`);
             continue;
         }
 
         for (const candidate of candidates){
             const searchName = cleanString(candidate.title, searchTermBlacklist);
-            const success = downloadMod({ displayName: candidate.title, modId: candidate.slug, searchName: searchName }, answers.modLoader, answers.version, true);
+            const filename = await downloadMod({ displayName: candidate.title, modId: candidate.slug, searchName: searchName }, answers.modLoader, answers.version, true);
 
-            if (success){
-                reportObj.alternate.push(`${modToSearch.displayName} - Found and downloaded alternate version named ${candidate.title}.`);
+            if (!!filename){
+                reportObj.alternate.push(`${modToSearch.displayName} - Found and downloaded alternate version named ${candidate.title} with filename ${filename}.`);
                 break;
             }
         }
         
-        await delay(2000)
+        await delay(500);
     }
 
-    logToFile(reportLogFilePath, JSON.stringify(reportObj, null, 2));
+    const msg = JSON.stringify(reportObj, null, 2);
+
+    logToFile(reportLogFilePath, msg);
+    logMessage(msg);
+    logMessage('Please review the mods in the alternateVersions folder and copy them in the mods folder if they are correct.', logLevel.WARNING);
 }
 
 async function downloadMod(modData, modLoader, version, isAlternate = false){
@@ -142,7 +162,7 @@ async function downloadMod(modData, modLoader, version, isAlternate = false){
     if (response.isError){
         logMessage(`${modData.displayName} - Did not find exact modId on Modrinth. Will try to search for an alternate version.`);
         
-        return false;
+        return null;
     }
     else{
         const mods = response.filter(elem => elem.game_versions.includes(version) && elem.loaders.includes(modLoader));
@@ -159,7 +179,7 @@ async function downloadMod(modData, modLoader, version, isAlternate = false){
 
             logMessage(msg);
             
-            return false;
+            return null;
         }
 
         let downloadURL = mod.files.find(elem => elem.primary)?.url;
@@ -170,10 +190,10 @@ async function downloadMod(modData, modLoader, version, isAlternate = false){
 
         if (!downloadURL){
             console.log(JSON.stringify(mod.files, null, 2))
-            return false;
+            return null;
         }
 
-        const filename = decodeURIComponent(downloadURL.split("/").pop());
+        const filename = decodeURIComponent(downloadURL.split('/').pop());
 
         logMessage(`Downloading file: ${filename}`);
 
@@ -185,7 +205,7 @@ async function downloadMod(modData, modLoader, version, isAlternate = false){
 
         await downloadFile(downloadURL, GETOptions, path.join(filePath, filename));
         
-        return true;
+        return filename;
     }
 }
 

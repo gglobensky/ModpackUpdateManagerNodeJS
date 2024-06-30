@@ -1,6 +1,6 @@
 import fs from 'fs-extra'
 import path from 'path'
-import { initConfig } from './Utils.js'
+import { fileURLToPath } from 'url';
 
 const logLevel = {
     DEBUG: 0,
@@ -15,13 +15,15 @@ const GETOptions = {
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json;charset=UTF-8',
-      'User-Agent': 'ModpackUpdateManager'
+      'User-Agent': 'gglobensky/ModpackUpdateManagerNodeJS/1.0.0'
     }
   };
 
-const outputFolder = 'output';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const outputFolder = path.join(path.resolve(__dirname, '..'), 'output');
 const reportLogFn = 'report.log';
-const reportLogFilePath = path.join(outputFolder, reportLogFn);
+const reportLogFilePath = path.join(path.resolve(__dirname, '..'), reportLogFn);
 const modsFolder = 'mods';
 const alternateFolder = 'alternateVersions';
 const configFn = 'ModpackUpdateManagerModrinth-config.json';
@@ -64,7 +66,9 @@ const defaultConfig = {
         'forge', 
         'neoforge', 
         'quilt'
-    ]
+    ],
+    chooseVersionFromList: false,
+    specifyPathWithDialog: true
 }
 
 const reportObj = {
@@ -85,8 +89,8 @@ if (!fs.existsSync(path.join(outputFolder, modsFolder, alternateFolder))){
     fs.mkdirSync(path.join(outputFolder, modsFolder, alternateFolder));
 }
 
-const config = initConfig(configFn, defaultConfig);
-const searchTermBlacklist = initConfig(defaultSearchTermBlacklistFn, defaultSearchTermBlacklist);
+const config = initConfig(path.join(path.resolve(__dirname, '..'), configFn), defaultConfig);
+const searchTermBlacklist = initConfig(path.join(path.resolve(__dirname, '..'), defaultSearchTermBlacklistFn), defaultSearchTermBlacklist);
 
 fs.writeFileSync(reportLogFilePath, '');
 
@@ -98,6 +102,22 @@ if (!config){
 if (!searchTermBlacklist){
     logMessage(`Could not parse searchTermBlacklist JSON. Correct ${defaultSearchTermBlacklistFn} or delete it to reset.`, logLevel.ERROR);
     process.exit(-1);
+}
+
+/*
+Creates if not exists, reads and parses a given config file
+*/
+export function initConfig(filepath, defaultConfig){
+    if (!fs.existsSync(filepath)){
+        fs.writeFileSync(filepath, JSON.stringify(defaultConfig, null, 2));
+    }
+
+    try{
+        return JSON.parse(fs.readFileSync(filepath));
+    }
+    catch(e){
+        return null;
+    }
 }
 
 export function getModrinthApi(){
@@ -130,6 +150,9 @@ export function getSearchTermBlacklist(){
 export function getLogLevel(){
     return logLevel;
 }
+export function getDirName(){
+    return __dirname;
+}
 
 export default { 
     getModrinthApi,
@@ -141,5 +164,6 @@ export default {
     getReportObj,
     getConfig,
     getSearchTermBlacklist,
-    getLogLevel
+    getLogLevel,
+    getDirName
 };
