@@ -1,5 +1,6 @@
 /*TODO -> 
 Sort mod search result by the number of words. The less words first to have a better match
+Configure saving log output to file
 */
 
 
@@ -20,7 +21,6 @@ import {
     getAlternateFolder,
     getReportObj,
     getConfig,
-    getSearchTermBlacklist,
     getLogLevel,
     getDirName
 } from './Init.js'
@@ -33,7 +33,6 @@ const modsFolder = getModsFolder();
 const alternateFolder = getAlternateFolder();
 const reportObj = getReportObj();
 const config = getConfig();
-const searchTermBlacklist = getSearchTermBlacklist();
 const logLevel = getLogLevel();
 
 let versionQuestion = {
@@ -138,7 +137,7 @@ async function main(){
         }
 
         for (const candidate of candidates){
-            const searchName = cleanString(candidate.title, searchTermBlacklist);
+            const searchName = cleanString(candidate.title, config.searchTermBlacklist);
             const filename = await downloadMod({ displayName: candidate.title, modId: candidate.slug, searchName: searchName }, answers.modLoader, answers.version, true);
 
             if (!!filename){
@@ -221,7 +220,7 @@ async function readModsTomlFromJar(jarFilePath) {
         const parsedToml = toml.parse(modsTomlContent);
         
         const displayName = parsedToml.mods?.[0]?.displayName || 'Unknown';
-        const searchName = cleanString(parsedToml.mods?.[0]?.displayName, searchTermBlacklist) || 'Unknown';
+        const searchName = cleanString(parsedToml.mods?.[0]?.displayName, config.searchTermBlacklist) || 'Unknown';
         const modId = parsedToml.mods?.[0]?.modId || 'Unknown';
         
         return { displayName, modId, searchName };

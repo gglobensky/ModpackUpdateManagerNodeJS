@@ -26,15 +26,8 @@ const reportLogFn = 'report.log';
 const reportLogFilePath = path.join(path.resolve(__dirname, '..'), reportLogFn);
 const modsFolder = 'mods';
 const alternateFolder = 'alternateVersions';
-const configFn = 'ModpackUpdateManagerModrinth-config.json';
-const defaultSearchTermBlacklistFn = 'searchTermBlacklist.json';
+const configFn = 'ModpackUpdateManagerNodeJS-config.json';
 
-const defaultSearchTermBlacklist = [
-    'edition',
-    'port',
-    'unofficial'
-  ]
-  
 const defaultConfig = {
     versions: [
         '1.12', 
@@ -67,6 +60,11 @@ const defaultConfig = {
         'neoforge', 
         'quilt'
     ],
+    searchTermBlacklist: [
+        'edition',
+        'port',
+        'unofficial'
+    ],
     chooseVersionFromList: false,
     specifyPathWithDialog: true
 }
@@ -90,17 +88,11 @@ if (!fs.existsSync(path.join(outputFolder, modsFolder, alternateFolder))){
 }
 
 const config = initConfig(path.join(path.resolve(__dirname, '..'), configFn), defaultConfig);
-const searchTermBlacklist = initConfig(path.join(path.resolve(__dirname, '..'), defaultSearchTermBlacklistFn), defaultSearchTermBlacklist);
 
 fs.writeFileSync(reportLogFilePath, '');
 
 if (!config){
     logMessage(`Could not parse config JSON. Correct ${configFn} or delete it to reset.`, logLevel.ERROR);
-    process.exit(-1);
-}
-
-if (!searchTermBlacklist){
-    logMessage(`Could not parse searchTermBlacklist JSON. Correct ${defaultSearchTermBlacklistFn} or delete it to reset.`, logLevel.ERROR);
     process.exit(-1);
 }
 
@@ -144,9 +136,6 @@ export function getReportObj(){
 export function getConfig(){
     return config;
 }
-export function getSearchTermBlacklist(){
-    return searchTermBlacklist;
-}
 export function getLogLevel(){
     return logLevel;
 }
@@ -163,7 +152,6 @@ export default {
     getAlternateFolder,
     getReportObj,
     getConfig,
-    getSearchTermBlacklist,
     getLogLevel,
     getDirName
 };
