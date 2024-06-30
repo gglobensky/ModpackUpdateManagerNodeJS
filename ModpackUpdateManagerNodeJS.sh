@@ -20,7 +20,15 @@ then
     # Wait for any key press
     read -p "Press Enter key to continue..."
 else
-    echo "Node.js is installed. Starting the script..."
+    echo "Node.js is installed."
+
+    # Check if node_modules is missing in the data folder
+    if [ ! -d "./data/node_modules" ]; then
+        echo "node_modules folder is missing in the data folder. Running npm install..."
+        (cd ./data && npm install)
+    fi
+
+    echo "Starting the script..."
     # Run your Node.js script here
     node ./data/Main.js
 
